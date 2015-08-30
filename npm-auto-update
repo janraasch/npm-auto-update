@@ -1,0 +1,92 @@
+#!/bin/bash
+usage="usage: npm-auto-update username reponame [sedString]
+The sedString will be applied to the npm install command given by david.
+E.g.
+  npm install --save through2@2.0.0 del@1.2.2
+will be turned into
+  npm install --save del@1.2.2
+with sedString 's/through2@[^ ]*//g'.
+This is a neat way to exclude certain dependencies from being updated."
+
+if [[ -z $1 ]]
+then
+  echo "npm-auto-update: please provide a GitHub username/organization as the first argument"
+  echo "$usage"
+  exit 1
+fi
+if [[ -z $2 ]]
+then
+  echo "npm-auto-update: please provide a GitHub repository name as the second argument"
+  echo "$usage"
+  exit 1
+fi
+
+token="${GITHUB_TOKEN}"
+
+if [[ -z $token ]]
+then
+  echo "npm-auto-update: please specify a GitHub token in environment variable GITHUB_TOKEN"
+  echo "$usage"
+  exit 1
+fi
+
+username="$1"
+repo="$2"
+token="${GITHUB_TOKEN}"
+base_branch='master'
+head_branch="feature/update-deps-$(date +%s)"
+ssh_clone_url="git@github.com:$username/$repo.git"
+post_data="{\"title\":\"update dependencies\", \"head\":\"$head_branch\",\"base\":\"master\"}"
+post_header='Content-Type:application/json'
+post_url="https://api.github.com/repos/$username/$repo/pulls"
+
+echo "Starting npm-auto-update for $username/$repo"
+rm -rf $repo
+git clone $ssh_clone_url
+cd $repo
+
+echo "Looking for updates..."
+if [[ ! -z $3 ]]
+then
+
+install_cmd="$( bash <<EOF
+david | grep 'npm install' | sed "$3"
+EOF
+)"
+
+else
+
+install_cmd="$( bash <<EOF
+david | grep 'npm install' | sed "$3"
+EOF
+)"
+fi
+
+echo "Running"
+echo "$install_cmd"
+echo "..."
+eval "$install_cmd"
+
+git_status=$(git status | grep modified)
+
+if [[ -z $git_status ]]
+then
+  echo "Chillin like a villain..."
+  echo "No changes to commit..."
+else
+  echo "Committing changes to git..."
+  git commit -am 'chore(dependencies): update npm dependencies'
+  git branch -m "$head_branch"
+  echo "Pushing changes to origin..."
+  git push origin "$head_branch":"$head_branch"
+  echo "Opening pull request..."
+  curl -u "$username":"$token" --data "$post_data" --header "$post_header" "$post_url"
+fi
+
+echo "Start cleaning up"
+cd ..
+rm -rf $repo
+echo "Done cleaning up"
+
+echo "Ending npm-auto-update for $username/$repo"
+exit 0

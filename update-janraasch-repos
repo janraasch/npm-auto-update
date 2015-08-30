@@ -1,0 +1,9 @@
+#!/bin/bash
+
+./npm-auto-update janraasch gulp-coffeelint 's/through2@[^ ]*//g'
+./npm-auto-update janraasch coffeelint-stylish
+./npm-auto-update janraasch generator-gulpplugin-coffee
+./npm-auto-update janraasch gulp-coffeelint 's/through2@[^ ]*//g'
+./npm-auto-update janraasch gulp-twitter 's/through2@[^ ]*//g'
+./npm-auto-update janraasch javascript-commitment
+./npm-auto-update janraasch tab-ahead
